@@ -9,7 +9,8 @@ import { MapSelector } from './components/MapSelector';
 import { AddressForm } from './components/AddressForm';
 import { NFTMinter } from './components/NFTMinter';
 import { AddressData } from './types';
-import { Package } from 'lucide-react';
+import { Package, MapPin, CheckCircle } from 'lucide-react';
+import { Card } from './components/ui/Card';
 
 const config = getDefaultConfig({
   appName: 'Delivery Address SBT',
@@ -24,10 +25,41 @@ const config = getDefaultConfig({
 
 const queryClient = new QueryClient();
 
+const StepIndicator: React.FC<{ currentStep: number; steps: string[] }> = ({ currentStep, steps }) => {
+  return (
+    <div className="w-full mb-8 animate-fade-in">
+      <div className="flex items-center justify-between">
+        {steps.map((step, index) => (
+          <React.Fragment key={index}>
+            <div className="flex flex-col items-center flex-1">
+            1);
+  };
+
+  const handleAddressComplete = (data: AddressData) => {
+    setAddressData(data);
+    setStep(2);
+  };
+
+  const handleMintSuccess = () => {
+    setTimeout(() => {
+      setStep(0);
+      setLocation(null);
+      setAddressData(null);
+    }, 3000
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 function App() {
-  const [step, setStep] = useState<'map' | 'form' | 'mint'>('map');
+  const [step, setStep] = useState<0 | 1 | 2>(0);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [addressData, setAddressData] = useState<AddressData | null>(null);
+  
+  const steps = ['Select Location', 'Enter Details', 'Mint NFT'];
 
   const handleLocationSelect = (lat: number, lng: number) => {
     setLocation({ lat, lng });

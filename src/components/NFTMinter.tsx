@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
-import { Wallet, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Wallet, CheckCircle, AlertCircle, Sparkles, TrendingUp } from 'lucide-react';
 import { AddressData } from '../types';
 import { MetadataPreview } from './MetadataPreview';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config/contract.config';
+import { Card, CardHeader, CardContent, CardFooter } from './ui/Card';
+import { Button } from './ui/Button';
+import { Badge } from './ui/Badge';
 
 interface NFTMinterProps {
   addressData: AddressData;
@@ -72,68 +75,98 @@ export const NFTMinter: React.FC<NFTMinterProps> = ({ addressData, onSuccess }) 
   }, [writeError]);
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Wallet className="w-6 h-6 text-blue-600" />
-        <h3 className="text-xl font-bold">Mint Your Address SBT</h3>
-      </div>
+    <Card className="animate-scale-in">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+            <Wallet className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">Mint Your Address SBT</h3>
+            <p className="text-sm text-gray-600">Complete your tokenization</p>
+          </div>
+        </div>
+      </CardHeader>
 
-      <MetadataPreview addressData={addressData} />
+      <CardContent className="space-y-5">
+        <MetadataPreview addressData={addressData} />
 
-      <div className="mt-6 space-y-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            <strong>Minting Fee:</strong> 0.005 ETH (testnet) / $5.00 USD (mainnet)
-          </p>
-          <p className="text-xs text-blue-600 mt-1">
-            This is a <strong>Soulbound Token</strong> - it cannot be transferred or sold.
-          </p>
+        {/* Pricing Info */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-700">Minting Fee</span>
+            <Badge variant="info" size="lg">0.005 ETH</Badge>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-blue-700">
+            <Sparkles className="w-4 h-4" />
+            <span>Soulbound Token - Cannot be transferred</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-purple-700">
+            <TrendingUp className="w-4 h-4" />
+            <span>Earn 100 ADDR tokens as reward</span>
+          </div>
         </div>
 
+        {/* Status Messages */}
         {!isConnected ? (
-          <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-4 rounded-lg">
-            <AlertCircle className="w-5 h-5" />
-            <p className="text-sm">Please connect your wallet to mint</p>
+          <div className="flex items-center gap-3 text-amber-700 bg-amber-50 p-4 rounded-lg border border-amber-200">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm font-medium">Please connect your wallet to mint</p>
           </div>
         ) : error ? (
-          <div className="flex items-center gap-2 text-red-600 bg-red-50 p-4 rounded-lg">
-            <AlertCircle className="w-5 h-5" />
-            <p className="text-sm">{error}</p>
+          <div className="flex items-center gap-3 text-red-700 bg-red-50 p-4 rounded-lg border border-red-200">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Error</p>
+              <p className="text-xs mt-1">{error}</p>
+            </div>
           </div>
         ) : isSuccess ? (
-          <div className="flex flex-col gap-2 text-green-600 bg-green-50 p-4 rounded-lg">
+          <div className="flex flex-col gap-3 text-green-700 bg-green-50 p-4 rounded-lg border-2 border-green-200">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5" />
-              <p className="text-sm font-medium">Successfully minted!</p>
+              <p className="text-sm font-bold">Successfully minted!</p>
             </div>
             {hash && (
-              <p className="text-xs font-mono break-all">
-                Transaction: {hash}
+              <p className="text-xs font-mono text-gray-600 break-all bg-white p-2 rounded">
+                {hash}
               </p>
             )}
           </div>
-        ) : (
-          <button
-            onClick={handleMint}
-            disabled={isPending || isConfirming}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
-          >
-            {(isPending || isConfirming) && <Loader2 className="w-5 h-5 animate-spin" />}
-            {isConfirming ? 'Confirming Transaction...' : isPending ? 'Check Wallet...' : 'Mint Address SBT'}
-          </button>
-        )}
+        ) : null}
 
-        {isConnected && (
-          <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded">
-            <p><strong>Connected:</strong> {address?.slice(0, 6)}...{address?.slice(-4)}</p>
-            <p className="mt-1"><strong>Contract:</strong> {CONTRACT_ADDRESS.slice(0, 6)}...{CONTRACT_ADDRESS.slice(-4)}</p>
+        {/* Wallet Info */}
+        {isConnected && !isSuccess && (
+          <div className="text-xs space-y-2 bg-gray-50 p-3 rounded-lg">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Connected Wallet:</span>
+              <span className="font-mono font-medium">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Contract:</span>
+              <span className="font-mono font-medium">{CONTRACT_ADDRESS.slice(0, 6)}...{CONTRACT_ADDRESS.slice(-4)}</span>
+            </div>
           </div>
         )}
+      </CardContent>
 
-        <p className="text-xs text-gray-500 text-center">
+      <CardFooter>
+        {!isSuccess && (
+          <Button
+            onClick={handleMint}
+            disabled={!isConnected || isPending || isConfirming}
+            loading={isPending || isConfirming}
+            size="lg"
+            className="w-full"
+            icon={<Wallet className="w-5 h-5" />}
+          >
+            {isConfirming ? 'Confirming...' : isPending ? 'Check Wallet' : 'Mint Address SBT'}
+          </Button>
+        )}
+        <p className="text-xs text-gray-500 text-center mt-3">
           By minting, you agree that this token is soulbound and cannot be transferred.
         </p>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 };
