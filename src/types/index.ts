@@ -8,6 +8,9 @@ export interface LocationMetadata {
   longitude: number;
   mintedAt?: number;
   additionalInfo?: string;
+  tier?: number;
+  elevation?: number;
+  populationDensity?: number;
 }
 
 export interface MapLocation {

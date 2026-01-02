@@ -5,18 +5,20 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+interface IADDRToken {
+    function burn(address account, uint256 amount) external;
+    function mint(address account, uint256 amount) external;
+    function balanceOf(address account) external view returns (uint256);
+}
+
 /**
  * @title DeliveryAddressSBT
- * @dev Soulbound Token (SBT) for tokenizing delivery addresses
- * - Non-transferable (Soulbound)
- * - Lazy minting support
- * - $5 minting fee goes to contract owner
- * - Stores full address and GPS coordinates
+ * @dev Soulbound Token with Dynamic Pricing, Deflationary Mechanics & Ad Revenue
  */
 contract DeliveryAddressSBT is ERC721, Ownable, ReentrancyGuard {
-    uint256 private _tokenIds;
+    uint256 private _nextTokenId = 1;
 
-    uint256 public constant MINT_FEE = 5 ether; // $5 equivalent in native token
+    enum LocationTier { BASIC, PREMIUM, LANDMARK, EXCLUSIVE }
     
     struct LocationMetadata {
         string street;
@@ -24,242 +26,200 @@ contract DeliveryAddressSBT is ERC721, Ownable, ReentrancyGuard {
         string state;
         string country;
         string postalCode;
-        int256 latitude;  // Stored as lat * 1e6 for precision
-        int256 longitude; // Stored as lng * 1e6 for precision
+        int256 latitude;
+        int256 longitude;
         uint256 mintedAt;
         string additionalInfo;
+        uint8 tier;
+        uint256 elevation;
+        uint256 populationDensity;
     }
 
-    struct LazyMintVoucher {
-        uint256 tokenId;
-        address minter;
-        LocationMetadata metadata;
-        bytes signature;
+    struct Advertisement {
+        string content;
+        string businessName;
+        string imageUrl;
+        uint256 expiresAt;
+        address advertiser;
     }
 
     mapping(uint256 => LocationMetadata) public tokenMetadata;
-    mapping(uint256 => bool) public usedVouchers;
     mapping(address => uint256[]) public userTokens;
-
-    event AddressMinted(
-        uint256 indexed tokenId,
-        address indexed owner,
-        string city,
-        string country
-    );
+    mapping(uint256 => Advertisement) public tokenAdvertisements;
+    mapping(address => uint256) public ownerAdRevenue;
     
+    uint256 public totalPlatformRevenue;
+    uint256 public totalAdvertisingRevenue;
+    
+    IADDRToken public addrToken;
+    
+    mapping(uint8 => uint256) public tierPrices;
+    uint256 public constant AD_FEE = 0.001 ether;
+    uint256 public constant UPDATE_BURN_AMOUNT = 10 ether;
+    uint256 public constant MINT_REWARD = 100 ether;
+    
+    event AddressMinted(uint256 indexed tokenId, address indexed owner, string city, string country, uint8 tier);
     event MetadataUpdated(uint256 indexed tokenId);
+    event AdvertisementPlaced(uint256 indexed tokenId, address advertiser, uint256 amount);
+    event AdRevenueWithdrawn(address indexed owner, uint256 amount);
 
-    constructor() ERC721("Delivery Address SBT", "DASBT") Ownable(msg.sender) {}
-
-    /**
-     * @dev Lazy Minting: Mint with off-chain signed voucher
-     * Allows users to prepare minting data off-chain and only pay gas when ready
-     */
-    function lazyMint(LazyMintVoucher calldata voucher) 
-        external 
-        payable 
-        nonReentrant 
-    {
-        require(msg.value >= MINT_FEE, "Insufficient minting fee");
-        require(!usedVouchers[voucher.tokenId], "Voucher already used");
-        require(voucher.minter == msg.sender, "Voucher not for caller");
-
-        // Verify signature
-        bytes32 digest = _hashVoucher(voucher);
-        address signer = _recover(digest, voucher.signature);
-        require(signer == owner(), "Invalid signature");
-
-        usedVouchers[voucher.tokenId] = true;
+    constructor(address _addrToken) ERC721("Delivery Address SBT", "DASBT") Ownable(msg.sender) {
+        addrToken = IADDRToken(_addrToken);
         
-        _tokenIds++;
-        uint256 newTokenId = _tokenIds;
+        tierPrices[uint8(LocationTier.BASIC)] = 0.005 ether;
+        tierPrices[uint8(LocationTier.PREMIUM)] = 0.01 ether;
+        tierPrices[uint8(LocationTier.LANDMARK)] = 0.05 ether;
+        tierPrices[uint8(LocationTier.EXCLUSIVE)] = 0.1 ether;
+    }
+
+    function _determineTier(LocationMetadata memory metadata) internal pure returns (uint8) {
+        if (metadata.elevation > 5000) {
+            return uint8(LocationTier.EXCLUSIVE);
+        }
+        
+        bytes32 cityHash = keccak256(bytes(metadata.city));
+        if (cityHash == keccak256(bytes("Paris")) ||
+            cityHash == keccak256(bytes("New York")) ||
+            cityHash == keccak256(bytes("Tokyo")) ||
+            cityHash == keccak256(bytes("London")) ||
+            metadata.elevation > 3000) {
+            return uint8(LocationTier.LANDMARK);
+        }
+        
+        if (metadata.populationDensity > 10000) {
+            return uint8(LocationTier.PREMIUM);
+        }
+        
+        return uint8(LocationTier.BASIC);
+    }
+
+    function mintAddress(LocationMetadata memory metadata) external payable nonReentrant returns (uint256) {
+        uint8 tier = _determineTier(metadata);
+        uint256 price = tierPrices[tier];
+        
+        require(msg.value >= price, "Insufficient minting fee");
+        
+        metadata.tier = tier;
+        metadata.mintedAt = block.timestamp;
+        
+        uint256 newTokenId = _nextTokenId++;
         
         _safeMint(msg.sender, newTokenId);
         
-        LocationMetadata memory metadata = voucher.metadata;
-        metadata.mintedAt = block.timestamp;
         tokenMetadata[newTokenId] = metadata;
         userTokens[msg.sender].push(newTokenId);
 
-        // Send $5 to contract owner
+        totalPlatformRevenue += msg.value;
         (bool success, ) = owner().call{value: msg.value}("");
         require(success, "Payment to owner failed");
 
-        emit AddressMinted(
-            newTokenId,
-            msg.sender,
-            voucher.metadata.city,
-            voucher.metadata.country
-        );
-    }
+        addrToken.mint(msg.sender, MINT_REWARD);
 
-    /**
-     * @dev Direct minting - Standard mint function
-     * User pays mint fee which goes directly to owner
-     */
-    function mintAddress(LocationMetadata calldata metadata) 
-        external 
-        payable 
-        nonReentrant 
-        returns (uint256) 
-    {
-        require(msg.value >= MINT_FEE, "Insufficient minting fee");
-        
-        _tokenIds++;
-        uint256 newTokenId = _tokenIds;
-        
-        _safeMint(msg.sender, newTokenId);
-        
-        LocationMetadata memory newMetadata = metadata;
-        newMetadata.mintedAt = block.timestamp;
-        tokenMetadata[newTokenId] = newMetadata;
-        userTokens[msg.sender].push(newTokenId);
-
-        // Send $5 to contract owner
-        (bool success, ) = owner().call{value: msg.value}("");
-        require(success, "Payment to owner failed");
-
-        emit AddressMinted(
-            newTokenId,
-            msg.sender,
-            metadata.city,
-            metadata.country
-        );
+        emit AddressMinted(newTokenId, msg.sender, metadata.city, metadata.country, tier);
 
         return newTokenId;
     }
 
-    /**
-     * @dev Update metadata (only token owner can update their own token)
-     * Useful for correcting address details or updating delivery instructions
-     */
-    function updateMetadata(uint256 tokenId, LocationMetadata calldata metadata) 
-        external 
-    {
+    function updateMetadata(uint256 tokenId, LocationMetadata memory metadata) external {
         require(ownerOf(tokenId) == msg.sender, "Not token owner");
+        require(addrToken.balanceOf(msg.sender) >= UPDATE_BURN_AMOUNT, "Insufficient ADDR tokens");
         
-        LocationMetadata memory updatedMetadata = metadata;
-        updatedMetadata.mintedAt = tokenMetadata[tokenId].mintedAt; // Keep original mint time
-        tokenMetadata[tokenId] = updatedMetadata;
+        addrToken.burn(msg.sender, UPDATE_BURN_AMOUNT);
         
+        metadata.tier = tokenMetadata[tokenId].tier;
+        metadata.mintedAt = tokenMetadata[tokenId].mintedAt;
+        
+        tokenMetadata[tokenId] = metadata;
         emit MetadataUpdated(tokenId);
     }
 
-    /**
-     * @dev Get all tokens owned by an address
-     */
-    function getTokensByOwner(address owner) 
-        external 
-        view 
-        returns (uint256[] memory) 
-    {
+    function placeAdvertisement(
+        uint256 tokenId, 
+        string memory content,
+        string memory businessName,
+        string memory imageUrl,
+        uint256 durationDays
+    ) external payable nonReentrant {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        require(msg.value >= AD_FEE, "Insufficient ad fee");
+        require(durationDays > 0 && durationDays <= 365, "Invalid duration");
+        
+        address tokenOwner = ownerOf(tokenId);
+        
+        uint256 ownerShare = (msg.value * 70) / 100;
+        uint256 platformShare = msg.value - ownerShare;
+        
+        ownerAdRevenue[tokenOwner] += ownerShare;
+        totalAdvertisingRevenue += msg.value;
+        totalPlatformRevenue += platformShare;
+        
+        tokenAdvertisements[tokenId] = Advertisement({
+            content: content,
+            businessName: businessName,
+            imageUrl: imageUrl,
+            expiresAt: block.timestamp + (durationDays * 1 days),
+            advertiser: msg.sender
+        });
+        
+        (bool success, ) = owner().call{value: platformShare}("");
+        require(success, "Platform payment failed");
+        
+        emit AdvertisementPlaced(tokenId, msg.sender, msg.value);
+    }
+
+    function withdrawAdRevenue() external nonReentrant {
+        uint256 amount = ownerAdRevenue[msg.sender];
+        require(amount > 0, "No revenue to withdraw");
+        
+        ownerAdRevenue[msg.sender] = 0;
+        
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Withdrawal failed");
+        
+        emit AdRevenueWithdrawn(msg.sender, amount);
+    }
+
+    function getAdvertisement(uint256 tokenId) external view returns (Advertisement memory) {
+        Advertisement memory ad = tokenAdvertisements[tokenId];
+        
+        if (ad.expiresAt < block.timestamp) {
+            return Advertisement("", "", "", 0, address(0));
+        }
+        
+        return ad;
+    }
+
+    function getTokensByOwner(address owner) external view returns (uint256[] memory) {
         return userTokens[owner];
     }
 
-    /**
-     * @dev Get token metadata
-     */
-    function getTokenMetadata(uint256 tokenId) 
-        external 
-        view 
-        returns (LocationMetadata memory) 
-    {
-        require(_exists(tokenId), "Token does not exist");
+    function getTokenMetadata(uint256 tokenId) external view returns (LocationMetadata memory) {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
         return tokenMetadata[tokenId];
     }
 
-    /**
-     * @dev Get total number of minted tokens
-     */
-    function totalSupply() external view returns (uint256) {
-        return _tokenIds;
+    function updateTierPrice(uint8 tier, uint256 newPrice) external onlyOwner {
+        tierPrices[tier] = newPrice;
     }
 
-    /**
-     * @dev Soulbound: Override _update to prevent transfers
-     * Only allow minting (from == address(0)) and burning (to == address(0))
-     */
-    function _update(
-        address to,
-        uint256 tokenId,
-        address auth
-    ) internal virtual override returns (address) {
+    function setADDRToken(address _addrToken) external onlyOwner {
+        addrToken = IADDRToken(_addrToken);
+    }
+
+    function totalSupply() external view returns (uint256) {
+        return _nextTokenId - 1;
+    }
+
+    function _update(address to, uint256 tokenId, address auth) internal virtual override returns (address) {
         address from = _ownerOf(tokenId);
         require(from == address(0) || to == address(0), "Soulbound: transfers disabled");
         return super._update(to, tokenId, auth);
     }
 
-    // ==================== Lazy Minting Helper Functions ====================
-
-    /**
-     * @dev Create hash of voucher for signature verification
-     */
-    function _hashVoucher(LazyMintVoucher calldata voucher) 
-        internal 
-        view 
-        returns (bytes32) 
-    {
-        return keccak256(abi.encodePacked(
-            voucher.tokenId,
-            voucher.minter,
-            voucher.metadata.street,
-            voucher.metadata.city,
-            voucher.metadata.postalCode,
-            address(this)
-        ));
-    }
-
-    /**
-     * @dev Recover signer from signature
-     */
-    function _recover(bytes32 digest, bytes memory signature) 
-        internal 
-        pure 
-        returns (address) 
-    {
-        bytes32 ethSignedHash = keccak256(
-            abi.encodePacked("\x19Ethereum Signed Message:\n32", digest)
-        );
-        
-        (bytes32 r, bytes32 s, uint8 v) = _splitSignature(signature);
-        return ecrecover(ethSignedHash, v, r, s);
-    }
-
-    /**
-     * @dev Split signature into r, s, v components
-     */
-    function _splitSignature(bytes memory sig)
-        internal
-        pure
-        returns (bytes32 r, bytes32 s, uint8 v)
-    {
-        require(sig.length == 65, "Invalid signature length");
-
-        assembly {
-            r := mload(add(sig, 32))
-            s := mload(add(sig, 64))
-            v := byte(0, mload(add(sig, 96)))
-        }
-    }
-
-    /**
-     * @dev Check if token exists
-     */
-    function _exists(uint256 tokenId) internal view returns (bool) {
-        return _ownerOf(tokenId) != address(0);
-    }
-
-    /**
-     * @dev Emergency withdraw (just in case funds get stuck)
-     */
     function emergencyWithdraw() external onlyOwner {
         (bool success, ) = owner().call{value: address(this).balance}("");
         require(success, "Withdrawal failed");
     }
 
-    /**
-     * @dev Receive function to accept ETH
-     */
     receive() external payable {}
 }
