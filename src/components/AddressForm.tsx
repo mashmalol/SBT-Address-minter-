@@ -73,7 +73,24 @@ export const AddressForm: React.FC<AddressFormProps> = ({ location, onAddressCom
           </div>
           {loading && <Badge variant="info"><Loader2 className="w-3 h-3 animate-spin mr-1" />Loading...</Badge>}
         </div>
-      </  {/* Street Address */}
+      </CardHeader>
+
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* GPS Coordinates Display */}
+          {location && (
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2 text-sm">
+                <Globe className="w-4 h-4 text-blue-600" />
+                <span className="font-semibold text-gray-700">GPS Coordinates:</span>
+                <span className="font-mono text-blue-700">
+                  {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Street Address */}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
               <Building2 className="w-4 h-4 text-blue-600" />
@@ -181,24 +198,21 @@ export const AddressForm: React.FC<AddressFormProps> = ({ location, onAddressCom
               </div>
             </div>
           )}
-        </CardContent>
+        </form>
+      </CardContent>
 
-        <CardFooter>
-          <Button
-            type="submit"
-            disabled={!location}
-            size="lg"
-            className="w-full"
-            icon={<Home className="w-5 h-5" />}
-          >
-            Continue to Mint
-          </Button>
-        </CardFooter>
-      </form>
-    </Card
+      <CardFooter>
+        <Button
+          type="submit"
+          onClick={handleSubmit}
+          disabled={!location}
+          size="lg"
+          className="w-full"
+          icon={<Home className="w-5 h-5" />}
+        >
           Continue to Mint
-        </button>
-      </form>
-    </div>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };

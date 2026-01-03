@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { sepolia, polygonAmoy, hardhat } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, ConnectButton, getDefaultConfig } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
@@ -8,19 +7,22 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { MapSelector } from './components/MapSelector';
 import { AddressForm } from './components/AddressForm';
 import { NFTMinter } from './components/NFTMinter';
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
+import { ChainSelector } from './components/ChainSelector';
 import { AddressData } from './types';
-import { Package, MapPin, CheckCircle } from 'lucide-react';
+import { Package, MapPin, CheckCircle, BarChart3, Wallet, Zap } from 'lucide-react';
 import { Card } from './components/ui/Card';
+import { ALL_CHAINS, TESTNET_CHAINS } from './config/chains.config';
+
+// Use testnet chains for development
+const chains = import.meta.env.VITE_APP_ENV === 'production' 
+  ? ALL_CHAINS 
+  : TESTNET_CHAINS;
 
 const config = getDefaultConfig({
   appName: 'Delivery Address SBT',
   projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
-  chains: [sepolia, polygonAmoy, hardhat],
-  transports: {
-    [sepolia.id]: http(),
-    [polygonAmoy.id]: http(),
-    [hardhat.id]: http(),
-  },
+  chains: [...chains] as any,
 });
 
 const queryClient = new QueryClient();
@@ -32,20 +34,27 @@ const StepIndicator: React.FC<{ currentStep: number; steps: string[] }> = ({ cur
         {steps.map((step, index) => (
           <React.Fragment key={index}>
             <div className="flex flex-col items-center flex-1">
-            1);
-  };
-
-  const handleAddressComplete = (data: AddressData) => {
-    setAddressData(data);
-    setStep(2);
-  };
-
-  const handleMintSuccess = () => {
-    setTimeout(() => {
-      setStep(0);
-      setLocation(null);
-      setAddressData(null);
-    }, 3000
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all duration-300 ${
+                index <= currentStep 
+                  ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg scale-110' 
+                  : 'bg-gray-200 text-gray-400'
+              }`}>
+                {index < currentStep ? (
+                  <CheckCircle className="w-6 h-6" />
+                ) : (
+                  <span className="font-bold">{index + 1}</span>
+                )}
+              </div>
+              <span className={`text-sm font-medium ${
+                index <= currentStep ? 'text-gray-900' : 'text-gray-400'
+              }`}>
+                {step}
+              </span>
+            </div>
+            {index < steps.length - 1 && (
+              <div className={`flex-1 h-1 mx-2 rounded transition-all duration-300 ${
+                index < currentStep ? 'bg-gradient-to-r from-blue-600 to-purple-600' : 'bg-gray-200'
+              }`} />
             )}
           </React.Fragment>
         ))}
@@ -55,122 +64,186 @@ const StepIndicator: React.FC<{ currentStep: number; steps: string[] }> = ({ cur
 };
 
 function App() {
-  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [addressData, setAddressData] = useState<AddressData | null>(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   
-  const steps = ['Select Location', 'Enter Details', 'Mint NFT'];
+  const steps = ['Select Location', 'Enter Details', 'Mint NFT', 'Analytics'];
 
   const handleLocationSelect = (lat: number, lng: number) => {
     setLocation({ lat, lng });
-    setStep('form');
+    setStep(1);
   };
 
   const handleAddressComplete = (data: AddressData) => {
     setAddressData(data);
-    setStep('mint');
+    setStep(2);
   };
 
   const handleMintSuccess = () => {
-    alert('🎉 Address SBT minted successfully!');
-    // Reset to start
-    setStep('map');
-    setLocation(null);
-    setAddressData(null);
+    setStep(3);
+    setTimeout(() => {
+      setShowAnalytics(true);
+    }, 1000);
   };
 
   const handleReset = () => {
-    setStep('map');
+    setStep(0);
+      setLocation(null);
+      setAddressData(null);
+    }, 3000);
+  };
+
+  const handleReset = () => {
+    setStep(0);
     setLocation(null);
     setAddressData(null);
+    setShowAnalytics(false);
   };
 
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-purple-100">
-            <header className="bg-white shadow-md">
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+            {/* Header */}
+            <header className="bg-white/80 backdrop-blur-sm shadow-md sticky top-0 z-50">
               <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Package className="w-8 h-8 text-blue-600" />
+                <div className="flex items-center gap-3 animate-slide-up">
+                  <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg shadow-lg">
+                    <Package className="w-6 h-6 text-white" />
+                  </div>
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Delivery Address SBT</h1>
-                    <p className="text-sm text-gray-600">Tokenize your delivery addresses</p>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      Delivery Address SBT
+                    </h1>
+                    <p className="text-sm text-gray-600">Multi-Chain NFT Minting</p>
                   </div>
                 </div>
-                <ConnectButton />
+                
+                <div className="flex items-center gap-4">
+                  <ChainSelector />
+                  <ConnectButton />
+                </div>
               </div>
             </header>
 
             <main className="max-w-7xl mx-auto px-4 py-8">
-              {/* Progress Steps */}
-              <div className="mb-8">
-                <div className="flex items-center justify-center gap-4">
-                  <div className={`flex items-center gap-2 ${step === 'map' ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'map' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
-                      1
+              {!showAnalytics ? (
+                <>
+                  {/* Hero Section */}
+                  {step === 0 && (
+                    <div className="text-center mb-12 animate-fade-in">
+                      <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                        Mint Your <span className="text-blue-600">Address NFT</span>
+                      </h2>
+                      <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                        Select a location on the map to create a unique, non-transferable token 
+                        representing your delivery address. Available on 7+ chains!
+                      </p>
                     </div>
-                    <span>Select Location</span>
+                  )}
+
+                  {/* Progress Indicator */}
+                  <StepIndicator currentStep={step} steps={steps} />
+
+                  {/* Main Content */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {step === 0 && (
+                      <div className="lg:col-span-2 space-y-6">
+                        <MapSelector onLocationSelect={handleLocationSelect} selectedLocation={location} />
+                        <p className="text-center text-gray-600">
+                          🗺️ Click anywhere on the map to select your delivery location
+                        </p>
+                        
+                        {/* Feature Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                          {[
+                            { icon: '🔗', title: '7+ Blockchains', desc: 'Multi-chain support' },
+                            { icon: '🔒', title: 'Soulbound', desc: 'Non-transferable' },
+                            { icon: '💰', title: '100 ADDR', desc: 'Earn rewards' },
+                          ].map((feature, i) => (
+                            <Card key={i} className="p-4 text-center hover:shadow-lg transition-shadow">
+                              <div className="text-3xl mb-2">{feature.icon}</div>
+                              <h3 className="font-bold text-gray-900">{feature.title}</h3>
+                              <p className="text-sm text-gray-600">{feature.desc}</p>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {step === 1 && location && (
+                      <>
+                        <MapSelector onLocationSelect={handleLocationSelect} selectedLocation={location} />
+                        <AddressForm location={location} onAddressComplete={handleAddressComplete} />
+                      </>
+                    )}
+
+                    {step === 2 && addressData && (
+                      <>
+                        <MapSelector onLocationSelect={() => {}} selectedLocation={location} />
+                        <NFTMinter addressData={addressData} onSuccess={handleMintSuccess} />
+                      </>
+                    )}
                   </div>
-                  <div className="w-16 h-1 bg-gray-300"></div>
-                  <div className={`flex items-center gap-2 ${step === 'form' ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'form' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
-                      2
+
+                  {/* Statistics Section */}
+                  {step === 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+                      {[
+                        { label: 'Total Mints', value: '1,234', icon: Package, color: 'blue' },
+                        { label: 'ADDR Distributed', value: '123.4K', icon: Wallet, color: 'purple' },
+                        { label: 'Active Chains', value: '7', icon: Zap, color: 'green' },
+                      ].map((stat, i) => (
+                        <Card key={i} className="p-6 hover:shadow-lg transition-shadow">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                              <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                            </div>
+                            <div className={`w-14 h-14 bg-${stat.color}-100 rounded-xl flex items-center justify-center`}>
+                              <stat.icon className={`w-7 h-7 text-${stat.color}-600`} />
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
-                    <span>Enter Details</span>
-                  </div>
-                  <div className="w-16 h-1 bg-gray-300"></div>
-                  <div className={`flex items-center gap-2 ${step === 'mint' ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'mint' ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
-                      3
+                  )}
+
+                  {/* Reset Button */}
+                  {step > 0 && (
+                    <div className="mt-6 text-center animate-fade-in">
+                      <button
+                        onClick={handleReset}
+                        className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                      >
+                        ← Start Over
+                      </button>
                     </div>
-                    <span>Mint SBT</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {step === 'map' && (
-                  <div className="lg:col-span-2">
-                    <MapSelector onLocationSelect={handleLocationSelect} selectedLocation={location} />
-                    <p className="text-center text-gray-600 mt-4">
-                      Click anywhere on the map to select your delivery location
-                    </p>
-                  </div>
-                )}
-
-                {step === 'form' && location && (
-                  <>
-                    <MapSelector onLocationSelect={handleLocationSelect} selectedLocation={location} />
-                    <AddressForm location={location} onAddressComplete={handleAddressComplete} />
-                  </>
-                )}
-
-                {step === 'mint' && addressData && (
-                  <>
-                    <MapSelector onLocationSelect={() => {}} selectedLocation={location} />
-                    <NFTMinter addressData={addressData} onSuccess={handleMintSuccess} />
-                  </>
-                )}
-              </div>
-
-              {(step === 'form' || step === 'mint') && (
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={handleReset}
-                    className="text-blue-600 hover:text-blue-800 underline"
-                  >
-                    ← Start Over
-                  </button>
-                </div>
+                  )}
+                </>
+              ) : (
+                <AnalyticsDashboard onBack={handleReset} />
               )}
             </main>
 
-            <footer className="mt-16 py-8 bg-white border-t">
-              <div className="max-w-7xl mx-auto px-4 text-center text-gray-600">
-                <p className="mb-2">🔒 Soulbound Tokens - Non-transferable delivery addresses</p>
-                <p className="text-sm">💰 Owner earns $5 per mint | 🌍 Powered by OpenStreetMap</p>
+            {/* Footer */}
+            <footer className="mt-16 py-8 bg-white/80 backdrop-blur-sm border-t">
+              <div className="max-w-7xl mx-auto px-4 text-center">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    © 2026 Delivery Address SBT • Multi-Chain NFT Platform
+                  </p>
+                  <button
+                    onClick={() => setShowAnalytics(!showAnalytics)}
+                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  >
+                    <BarChart3 className="w-5 h-5" />
+                    {showAnalytics ? 'Hide' : 'View'} Analytics
+                  </button>
+                </div>
               </div>
             </footer>
           </div>
