@@ -9,6 +9,7 @@ import { AddressForm } from './components/AddressForm';
 import { NFTMinter } from './components/NFTMinter';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { ChainSelector } from './components/ChainSelector';
+import { BackgroundSelector } from './components/BackgroundSelector';
 import { AddressData } from './types';
 import { Package, MapPin, CheckCircle, BarChart3, Wallet, Zap } from 'lucide-react';
 import { Card } from './components/ui/Card';
@@ -106,19 +107,22 @@ function App() {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+          {/* Animated Background */}
+          <BackgroundSelector />
+
+          <div className="min-h-screen">
             {/* Header */}
-            <header className="bg-white/80 backdrop-blur-sm shadow-md sticky top-0 z-50">
+            <header className="bg-gray-900/80 backdrop-blur-md shadow-lg border-b border-gray-700 sticky top-0 z-40">
               <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3 animate-slide-up">
                   <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg shadow-lg">
                     <Package className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    <h1 className="text-2xl font-bold text-white">
                       Delivery Address SBT
                     </h1>
-                    <p className="text-sm text-gray-600">Multi-Chain NFT Minting</p>
+                    <p className="text-sm text-gray-400">Multi-Chain NFT Minting</p>
                   </div>
                 </div>
                 
@@ -135,10 +139,10 @@ function App() {
                   {/* Hero Section */}
                   {step === 0 && (
                     <div className="text-center mb-12 animate-fade-in">
-                      <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                        Mint Your <span className="text-blue-600">Address NFT</span>
+                      <h2 className="text-4xl font-bold text-white mb-4">
+                        Mint Your <span className="text-blue-400">Address NFT</span>
                       </h2>
-                      <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                      <p className="text-lg text-gray-300 max-w-2xl mx-auto">
                         Select a location on the map to create a unique, non-transferable token 
                         representing your delivery address. Available on 7+ chains!
                       </p>
@@ -153,7 +157,7 @@ function App() {
                     {step === 0 && (
                       <div className="lg:col-span-2 space-y-6">
                         <MapSelector onLocationSelect={handleLocationSelect} selectedLocation={location} />
-                        <p className="text-center text-gray-600">
+                        <p className="text-center text-gray-300">
                           🗺️ Click anywhere on the map to select your delivery location
                         </p>
                         
@@ -164,10 +168,10 @@ function App() {
                             { icon: '🔒', title: 'Soulbound', desc: 'Non-transferable' },
                             { icon: '💰', title: '100 ADDR', desc: 'Earn rewards' },
                           ].map((feature, i) => (
-                            <Card key={i} className="p-4 text-center hover:shadow-lg transition-shadow">
+                            <Card key={i} className="p-4 text-center hover:shadow-lg transition-shadow bg-gray-900/50 backdrop-blur-md border-gray-700">
                               <div className="text-3xl mb-2">{feature.icon}</div>
-                              <h3 className="font-bold text-gray-900">{feature.title}</h3>
-                              <p className="text-sm text-gray-600">{feature.desc}</p>
+                              <h3 className="font-bold text-white">{feature.title}</h3>
+                              <p className="text-sm text-gray-400">{feature.desc}</p>
                             </Card>
                           ))}
                         </div>
@@ -176,14 +180,18 @@ function App() {
 
                     {step === 1 && location && (
                       <>
-                        <MapSelector onLocationSelect={handleLocationSelect} selectedLocation={location} />
+                        <Card hover className="overflow-hidden bg-gray-900/50 backdrop-blur-md border-gray-700">
+                          <MapSelector onLocationSelect={handleLocationSelect} selectedLocation={location} />
+                        </Card>
                         <AddressForm location={location} onAddressComplete={handleAddressComplete} />
                       </>
                     )}
 
                     {step === 2 && addressData && (
                       <>
-                        <MapSelector onLocationSelect={() => {}} selectedLocation={location} />
+                        <Card hover className="overflow-hidden bg-gray-900/50 backdrop-blur-md border-gray-700">
+                          <MapSelector onLocationSelect={() => {}} selectedLocation={location} />
+                        </Card>
                         <NFTMinter addressData={addressData} onSuccess={handleMintSuccess} />
                       </>
                     )}
@@ -197,14 +205,14 @@ function App() {
                         { label: 'ADDR Distributed', value: '123.4K', icon: Wallet, color: 'purple' },
                         { label: 'Active Chains', value: '7', icon: Zap, color: 'green' },
                       ].map((stat, i) => (
-                        <Card key={i} className="p-6 hover:shadow-lg transition-shadow">
+                        <Card key={i} className="p-6 hover:shadow-lg transition-shadow bg-gray-900/50 backdrop-blur-md border-gray-700">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                              <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                              <p className="text-sm font-medium text-gray-400">{stat.label}</p>
+                              <p className="text-3xl font-bold text-white mt-1">{stat.value}</p>
                             </div>
-                            <div className={`w-14 h-14 bg-${stat.color}-100 rounded-xl flex items-center justify-center`}>
-                              <stat.icon className={`w-7 h-7 text-${stat.color}-600`} />
+                            <div className={`w-14 h-14 bg-${stat.color}-500/20 rounded-xl flex items-center justify-center`}>
+                              <stat.icon className={`w-7 h-7 text-${stat.color}-400`} />
                             </div>
                           </div>
                         </Card>
@@ -217,7 +225,7 @@ function App() {
                     <div className="mt-6 text-center animate-fade-in">
                       <button
                         onClick={handleReset}
-                        className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                        className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
                       >
                         ← Start Over
                       </button>
@@ -230,15 +238,15 @@ function App() {
             </main>
 
             {/* Footer */}
-            <footer className="mt-16 py-8 bg-white/80 backdrop-blur-sm border-t">
+            <footer className="mt-16 py-8 bg-gray-900/80 backdrop-blur-md border-t border-gray-700">
               <div className="max-w-7xl mx-auto px-4 text-center">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-400">
                     © 2026 Delivery Address SBT • Multi-Chain NFT Platform
                   </p>
                   <button
                     onClick={() => setShowAnalytics(!showAnalytics)}
-                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                    className="flex items-center gap-2 text-blue-400 hover:text-blue-300 font-medium transition-colors"
                   >
                     <BarChart3 className="w-5 h-5" />
                     {showAnalytics ? 'Hide' : 'View'} Analytics
