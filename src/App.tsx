@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WagmiProvider, createConfig, http } from 'wagmi';
+import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, ConnectButton, getDefaultConfig } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
@@ -11,7 +11,7 @@ import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { ChainSelector } from './components/ChainSelector';
 import { BackgroundSelector } from './components/BackgroundSelector';
 import { AddressData } from './types';
-import { Package, MapPin, CheckCircle, BarChart3, Wallet, Zap } from 'lucide-react';
+import { Package, CheckCircle, BarChart3, Wallet, Zap } from 'lucide-react';
 import { Card } from './components/ui/Card';
 import { ALL_CHAINS, TESTNET_CHAINS } from './config/chains.config';
 
@@ -149,7 +149,7 @@ function App() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {step === 0 && (
                       <div className="lg:col-span-2 space-y-6">
-                        <MapSelector onLocationSelect={handleLocationSelect} selectedLocation={location} />
+                        <MapSelector onLocationSelect={handleLocationSelect} selectedLocation={location || undefined} />
                         <p className="text-center text-gray-300">
                           🗺️ Click anywhere on the map to select your delivery location
                         </p>
@@ -183,7 +183,7 @@ function App() {
                     {step === 2 && addressData && (
                       <>
                         <Card hover className="overflow-hidden bg-gray-900/50 backdrop-blur-md border-gray-700">
-                          <MapSelector onLocationSelect={() => {}} selectedLocation={location} />
+                          <MapSelector onLocationSelect={() => {}} selectedLocation={location || undefined} />
                         </Card>
                         <NFTMinter addressData={addressData} onSuccess={handleMintSuccess} />
                       </>

@@ -1,11 +1,13 @@
+// TODO: Update to viem/wagmi v2 - currently using old ethers v5 syntax
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ethers } from 'ethers';
 import { LazyMintVoucher } from '../types';
 
 export class LazyMintingService {
-  private signer: ethers.Signer;
+  private signer: any; // ethers.Signer;
   private contractAddress: string;
 
-  constructor(signer: ethers.Signer, contractAddress: string) {
+  constructor(signer: any, contractAddress: string) {
     this.signer = signer;
     this.contractAddress = contractAddress;
   }
@@ -18,7 +20,7 @@ export class LazyMintingService {
     const domain = {
       name: 'DeliveryAddressSBT',
       version: '1',
-      chainId: await this.signer.getChainId(),
+      chainId: (await (this.signer as any).getChainId?.()) || 1,
       verifyingContract: this.contractAddress,
     };
 
@@ -40,7 +42,7 @@ export class LazyMintingService {
       postalCode: metadata.postalCode,
     };
 
-    const signature = await this.signer._signTypedData(domain, types, value);
+    const signature = await (this.signer as any).signTypedData(domain, types, value);
 
     return {
       tokenId,
@@ -55,7 +57,7 @@ export class LazyMintingService {
       const domain = {
         name: 'DeliveryAddressSBT',
         version: '1',
-        chainId: await this.signer.getChainId(),
+        chainId: (await (this.signer as any).getChainId?.()) || 1,
         verifyingContract: this.contractAddress,
       };
 
@@ -77,7 +79,7 @@ export class LazyMintingService {
         postalCode: voucher.metadata.postalCode,
       };
 
-      const recoveredAddress = ethers.utils.verifyTypedData(
+      const recoveredAddress = (ethers as any).utils?.verifyTypedData(
         domain,
         types,
         value,

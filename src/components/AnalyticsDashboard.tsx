@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useAccount, useChainId } from 'wagmi';
+import React, { useState } from 'react';
+// import { useAccount, useChainId } from 'wagmi';
 import { 
   TrendingUp, 
   Globe, 
@@ -8,7 +8,6 @@ import {
   MapPin, 
   Activity,
   BarChart3,
-  PieChart,
   ArrowLeft,
   Users,
   Zap
@@ -44,10 +43,10 @@ interface GlobalStats {
 }
 
 export const AnalyticsDashboard: React.FC<{ onBack: () => void }> = ({ onBack }) => {
-  const { address } = useAccount();
-  const chainId = useChainId();
+  // const { address } = useAccount();
+  // const chainId = useChainId();
   const [activeTab, setActiveTab] = useState<'personal' | 'global'>('personal');
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
 
   // Mock data - will be replaced with real API calls
   const userAnalytics: AnalyticsData = {

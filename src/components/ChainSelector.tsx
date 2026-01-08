@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useChainId, useSwitchChain } from 'wagmi';
 import { ChevronDown, Check, Zap } from 'lucide-react';
-import { SUPPORTED_CHAINS, SupportedChainId } from '../config/chains.config';
+import { SUPPORTED_CHAINS } from '../config/chains.config';
 
 export const ChainSelector: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);

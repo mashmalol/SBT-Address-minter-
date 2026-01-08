@@ -1,4 +1,4 @@
-import { Chain } from 'wagmi';
+
 import { mainnet, sepolia, polygon, polygonMumbai, base, arbitrum, optimism } from 'wagmi/chains';
 
 export const SUPPORTED_CHAINS = {
