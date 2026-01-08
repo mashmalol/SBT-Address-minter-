@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useNetwork } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 import { 
   TrendingUp, 
   Globe, 
@@ -45,7 +45,7 @@ interface GlobalStats {
 
 export const AnalyticsDashboard: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const { address } = useAccount();
-  const { chain } = useNetwork();
+  const chainId = useChainId();
   const [activeTab, setActiveTab] = useState<'personal' | 'global'>('personal');
   const [loading, setLoading] = useState(false);
 

@@ -91,13 +91,6 @@ function App() {
 
   const handleReset = () => {
     setStep(0);
-      setLocation(null);
-      setAddressData(null);
-    }, 3000);
-  };
-
-  const handleReset = () => {
-    setStep(0);
     setLocation(null);
     setAddressData(null);
     setShowAnalytics(false);
