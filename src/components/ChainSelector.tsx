@@ -1,22 +1,20 @@
 import React, { useState } from 'react';
-import { useNetwork, useSwitchNetwork } from 'wagmi';
+import { useChainId, useSwitchChain } from 'wagmi';
 import { ChevronDown, Check, Zap } from 'lucide-react';
 import { SUPPORTED_CHAINS, SupportedChainId } from '../config/chains.config';
 
 export const ChainSelector: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { chain } = useNetwork();
-  const { switchNetwork } = useSwitchNetwork();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
 
-  const currentChain = chain 
-    ? Object.values(SUPPORTED_CHAINS).find(c => c.id === chain.id)
+  const currentChain = chainId 
+    ? Object.values(SUPPORTED_CHAINS).find(c => c.id === chainId)
     : SUPPORTED_CHAINS.sepolia;
 
-  const handleChainSwitch = (chainId: number) => {
-    if (switchNetwork) {
-      switchNetwork(chainId);
-      setIsOpen(false);
-    }
+  const handleChainSwitch = (newChainId: number) => {
+    switchChain({ chainId: newChainId });
+    setIsOpen(false);
   };
 
   return (
@@ -51,7 +49,7 @@ export const ChainSelector: React.FC = () => {
                 {Object.entries(SUPPORTED_CHAINS)
                   .filter(([key]) => !key.includes('sepolia') && !key.includes('mumbai'))
                   .map(([key, chainConfig]) => {
-                    const isActive = chain?.id === chainConfig.id;
+                    const isActive = chainId === chainConfig.id;
                     
                     return (
                       <button
@@ -95,7 +93,7 @@ export const ChainSelector: React.FC = () => {
                 {Object.entries(SUPPORTED_CHAINS)
                   .filter(([key]) => key.includes('sepolia') || key.includes('mumbai'))
                   .map(([key, chainConfig]) => {
-                    const isActive = chain?.id === chainConfig.id;
+                    const isActive = chainId === chainConfig.id;
                     
                     return (
                       <button
